@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="de-AT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Star Collector Adventure ✨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --pink:#ff5fa2; --purple:#7b4dff; --blue:#3aa0ff;
+    --yellow:#ffd23f; --green:#2ecc71; --red:#ff3b5c;
+    --ink:#241b4d; --card:#ffffff;
+    --bg:linear-gradient(160deg,#1a1145 0%,#3a1d7a 45%,#6b2fa0 100%);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);
+    overflow:hidden;user-select:none;-webkit-user-select:none;
+    transition:background .5s ease;
+  }
+  h1,h2,h3{font-family:'Baloo 2',sans-serif;}
+
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;max-width:760px;margin:0 auto;
+    overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.4);transition:box-shadow .3s;}
+  #app.framed{box-shadow:0 0 0 6px var(--yellow),0 0 30px var(--yellow);}
+
+  .bgstar{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;opacity:.5;animation:twinkle 3s infinite ease-in-out;}
+  @keyframes twinkle{0%,100%{opacity:.2;}50%{opacity:.9;}}
+
+  /* HUD */
+  #hud{position:absolute;top:0;left:0;right:0;z-index:30;padding:8px 10px 0;
+    display:flex;flex-direction:column;gap:5px;pointer-events:none;}
+  .hud-row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .pill{background:rgba(255,255,255,.95);border-radius:16px;padding:6px 12px;
+    font-weight:900;font-size:15px;box-shadow:0 4px 0 rgba(0,0,0,.15);
+    display:flex;align-items:center;gap:6px;pointer-events:auto;}
+  .pill.coins{color:#c98a00;} .pill.score{color:var(--purple);}
+  .hearts{font-size:18px;letter-spacing:1px;}
+
+  /* discreet spent counter during play */
+  .spent-mini{align-self:flex-end;font-size:11px;font-weight:800;
+    color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);
+    border-radius:10px;padding:2px 8px;pointer-events:none;transition:transform .25s var(--ease-out);}
+  .spent-mini.bump{transform:scale(1.25);color:rgba(255,255,255,.9);}
+
+  /* XP / level bar */
+  .xpwrap{position:relative;height:14px;background:rgba(255,255,255,.18);border-radius:10px;
+    overflow:hidden;pointer-events:none;}
+  .xpfill{height:100%;width:0%;background:linear-gradient(90deg,var(--yellow),var(--green));
+    transition:width .4s var(--ease-out);}
+  .xptext{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+
+  #countdownBanner{background:linear-gradient(90deg,var(--red),#ff7b3b);color:#fff;font-weight:900;
+    font-size:13px;border-radius:14px;padding:7px 12px;text-align:center;
+    box-shadow:0 4px 0 rgba(0,0,0,.2);animation:bannerPulse 1.1s infinite;pointer-events:auto;cursor:pointer;}
+  @keyframes bannerPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.02);}}
+
+  #field{position:absolute;inset:0;z-index:10;touch-action:none;}
+  #field.giant .star:not(.special){font-size:54px;}
+  .star{position:absolute;font-size:38px;cursor:pointer;will-change:transform;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));transition:transform .1s var(--ease-out);}
+  .star:active{transform:scale(.8);}
+  .star.special{font-size:46px;animation:specGlow 1.2s infinite ease-in-out;
+    filter:drop-shadow(0 0 8px gold) drop-shadow(0 3px 4px rgba(0,0,0,.3));}
+  .star.special::after{content:'🔒';position:absolute;right:-6px;bottom:-6px;font-size:18px;filter:none;}
+  @keyframes specGlow{0%,100%{transform:scale(1) rotate(-4deg);}50%{transform:scale(1.12) rotate(4deg);}}
+
+  .pop{position:absolute;z-index:20;font-weight:900;color:#fff;font-family:'Baloo 2';
+    font-size:22px;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,.4);
+    animation:popUp .8s var(--ease-out) forwards;}
+  .pop.xl{font-size:34px;}
+  @keyframes popUp{0%{transform:translateY(0) scale(.5);opacity:0;}20%{opacity:1;transform:translateY(-6px) scale(1.1);}100%{transform:translateY(-50px) scale(1);opacity:0;}}
+
+  #player{position:absolute;bottom:84px;left:50%;font-size:58px;z-index:28;
+    transform:translateX(-50%);transition:left .12s var(--ease-out);
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.45));}
+  #player::after{content:'';position:absolute;inset:-16px -12px;z-index:-1;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.38),rgba(255,255,255,0) 70%);}
+  #player.glitter{filter:drop-shadow(0 0 10px var(--yellow)) drop-shadow(0 0 18px var(--pink));}
+
+  #combo{position:absolute;top:150px;left:50%;transform:translateX(-50%);z-index:22;
+    font-family:'Baloo 2';font-weight:800;font-size:26px;color:var(--yellow);
+    text-shadow:0 2px 6px rgba(0,0,0,.5);opacity:0;pointer-events:none;}
+  #combo.show{animation:comboPop .5s var(--ease-out);}
+  @keyframes comboPop{0%{opacity:0;transform:translateX(-50%) scale(.6);}40%{opacity:1;transform:translateX(-50%) scale(1.15);}100%{opacity:0;transform:translateX(-50%) scale(1);}}
+
+  #leaderboard{position:absolute;top:118px;right:6px;z-index:25;background:rgba(255,255,255,.92);
+    border-radius:12px;padding:6px 8px;width:112px;font-size:10px;font-weight:800;
+    box-shadow:0 5px 0 rgba(0,0,0,.15);pointer-events:none;display:none;}
+  #leaderboard.show{display:block;}
+  #leaderboard h3{font-size:11px;color:var(--purple);margin-bottom:4px;text-align:center;}
+  .lb-row{display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:1px dashed #eee;}
+  .lb-row.you{color:var(--pink);background:#fff0f6;border-radius:6px;padding:2px 4px;animation:youGlow 1s infinite;border-bottom:none;}
+  .lb-sep{text-align:center;color:#ccc;font-size:9px;letter-spacing:2px;padding:1px 0;}
+  @keyframes youGlow{0%,100%{background:#fff0f6;}50%{background:#ffd6e8;}}
+
+  #bottomBar{position:absolute;bottom:0;left:0;right:0;z-index:30;display:flex;gap:7px;padding:9px;pointer-events:none;}
+  .barbtn{pointer-events:auto;flex:1;border:none;border-radius:16px;padding:11px 4px;
+    font-family:'Baloo 2';font-weight:800;font-size:14px;color:#fff;position:relative;
+    box-shadow:0 5px 0 rgba(0,0,0,.25);cursor:pointer;
+    transition:transform .12s var(--ease-out),box-shadow .12s var(--ease-out);}
+  .barbtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.25);}
+  #shopBtn{background:linear-gradient(135deg,var(--blue),var(--purple));}
+  #boxBtn{background:linear-gradient(135deg,var(--green),#16a085);}
+  #boxBtn[disabled]{opacity:.5;cursor:default;}
+  #endBtn{background:linear-gradient(135deg,#ff7b3b,var(--red));flex:0 0 auto;padding:11px 14px;}
+  .badge{position:absolute;top:-6px;right:-2px;background:var(--red);color:#fff;font-size:11px;
+    font-weight:900;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;
+    justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.3);animation:bannerPulse 1s infinite;}
+
+  #overlay{position:absolute;inset:0;z-index:50;background:rgba(20,10,50,.66);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;padding:16px;}
+  #overlay.show{display:flex;animation:fadeIn .2s ease-out;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  .modal{background:var(--card);border-radius:24px;width:100%;max-width:400px;padding:20px 18px;
+    text-align:center;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.4);
+    animation:modalIn .32s var(--ease-out);max-height:94%;overflow-y:auto;}
+  @keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(14px);}to{opacity:1;transform:scale(1) translateY(0);}}
+  .modal .big{font-size:46px;display:block;margin-bottom:6px;animation:wobble 1.4s infinite;}
+  @keyframes wobble{0%,100%{transform:rotate(-5deg);}50%{transform:rotate(5deg);}}
+  .modal h2{font-size:22px;color:var(--ink);margin-bottom:8px;line-height:1.1;}
+  .modal p{font-size:14px;color:#5a5470;margin-bottom:12px;line-height:1.35;font-weight:700;}
+  .price{font-size:28px;font-family:'Baloo 2';color:var(--green);font-weight:800;}
+  .strike{color:#bbb;text-decoration:line-through;font-size:17px;margin-right:6px;}
+
+  .buy-btn{display:block;width:100%;border:none;border-radius:16px;padding:14px;
+    font-family:'Baloo 2';font-size:18px;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,#ff8a00,#ff3b5c);box-shadow:0 6px 0 #c92a45;
+    cursor:pointer;margin-bottom:10px;transition:transform .12s var(--ease-out),box-shadow .12s var(--ease-out);
+    animation:buyGlow 1.5s infinite;}
+  @keyframes buyGlow{0%,100%{box-shadow:0 6px 0 #c92a45;}50%{box-shadow:0 6px 22px rgba(255,59,92,.7);}}
+  .buy-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c92a45;}
+  .buy-btn.green{background:linear-gradient(135deg,#2ecc71,#16a085);box-shadow:0 6px 0 #0e7a5f;animation:none;}
+  .buy-btn.green:active{box-shadow:0 2px 0 #0e7a5f;}
+  .decline{background:none;border:none;color:#b8b3c7;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;padding:6px;}
+  .mini-timer{display:inline-block;background:#fff0f0;color:var(--red);font-weight:900;border-radius:8px;padding:2px 8px;font-size:14px;}
+  .nag{background:linear-gradient(90deg,var(--red),#ff8a00);color:#fff;font-weight:900;border-radius:14px;
+    padding:12px;margin-bottom:12px;font-size:15px;line-height:1.3;animation:nagBlink .7s infinite;}
+  @keyframes nagBlink{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.55;transform:scale(1.04);}}
+
+  /* math spend gate */
+  .mathgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px;}
+  .mq{display:flex;align-items:center;gap:6px;background:#f5f3ff;border-radius:10px;padding:6px 8px;
+    font-weight:900;font-size:15px;color:var(--ink);justify-content:center;}
+  .mq input{width:46px;border:2px solid #d8d0ff;border-radius:8px;padding:5px;font-size:15px;
+    font-weight:900;text-align:center;font-family:'Nunito';color:var(--purple);}
+  .mq input.wrong{border-color:var(--red);background:#fff0f2;}
+  .mq input.right{border-color:var(--green);background:#effaf2;}
+  .mathmsg{color:var(--red);font-weight:900;font-size:13px;min-height:16px;margin-bottom:8px;}
+
+  #wheelWrap{width:150px;height:150px;margin:6px auto 12px;position:relative;}
+  #wheel{width:100%;height:100%;border-radius:50%;
+    background:conic-gradient(var(--pink) 0 60deg,var(--blue) 60deg 120deg,var(--yellow) 120deg 180deg,var(--green) 180deg 240deg,var(--purple) 240deg 300deg,var(--red) 300deg 360deg);
+    border:6px solid #fff;box-shadow:0 6px 16px rgba(0,0,0,.3);transition:transform 3s var(--ease-in-out);}
+  #wheelPin{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:26px;z-index:2;}
+
+  /* Shop */
+  .tabs{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;}
+  .tab{border:none;background:#efeaff;color:var(--purple);border-radius:12px;padding:7px 9px;
+    font-family:'Baloo 2';font-weight:800;font-size:12px;cursor:pointer;}
+  .tab.active{background:var(--purple);color:#fff;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px;}
+  .item{background:#f5f3ff;border-radius:14px;padding:10px 7px;text-align:center;border:2px solid #e7e2ff;}
+  .item.owned{border-color:var(--green);}
+  .item.equipped{border-color:var(--purple);background:#ede7ff;}
+  .item .em{font-size:34px;display:block;line-height:1.1;}
+  .item .nm{font-weight:900;font-size:12px;color:var(--ink);margin:3px 0;line-height:1.05;}
+  .item .ds{font-size:10px;color:#8a85a0;font-weight:700;min-height:12px;}
+  .item .pr{font-weight:900;font-size:12px;margin-top:3px;}
+  .item .pr.sc{color:#c98a00;} .item .pr.eur{color:var(--green);}
+  .item button{margin-top:6px;border:none;border-radius:10px;padding:6px 8px;font-weight:800;
+    font-size:11px;cursor:pointer;color:#fff;background:var(--purple);width:100%;}
+  .item button.eq{background:var(--green);}
+  .item button.use{background:var(--blue);}
+  .swatch{height:34px;border-radius:10px;margin-bottom:4px;}
+
+  #start{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;
+    justify-content:safe center;text-align:center;padding:24px;gap:14px;overflow-y:auto;}
+  #start h1{font-size:clamp(30px,9vw,42px);color:#fff;line-height:1;text-shadow:0 4px 0 rgba(0,0,0,.25);}
+  #start .sub{color:var(--yellow);font-weight:900;font-size:clamp(14px,4.6vw,17px);}
+  #start .planet{font-size:clamp(56px,17vw,80px);animation:float 3s infinite ease-in-out;}
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
+  .start-btn{background:linear-gradient(135deg,var(--yellow),#ff8a00);border:none;border-radius:20px;
+    padding:clamp(13px,4vw,16px) clamp(30px,10vw,40px);font-family:'Baloo 2';font-size:clamp(20px,6vw,24px);font-weight:800;color:#fff;
+    box-shadow:0 7px 0 #c96a00;cursor:pointer;transition:transform .12s var(--ease-out),box-shadow .12s var(--ease-out);}
+  .start-btn:active{transform:translateY(4px);box-shadow:0 3px 0 #c96a00;}
+
+  #teacherBtn{position:absolute;bottom:150px;left:50%;transform:translateX(-50%);z-index:31;background:#fff;
+    color:var(--ink);border:none;border-radius:14px;padding:8px 16px;font-family:'Baloo 2';font-weight:800;
+    font-size:13px;box-shadow:0 4px 0 rgba(0,0,0,.2);cursor:pointer;display:none;opacity:0;transition:opacity .4s var(--ease-out);}
+  #teacherBtn.show{opacity:1;}
+
+  #teacher{position:absolute;inset:0;z-index:70;background:#fbfaff;overflow-y:auto;display:none;padding:18px 16px 40px;}
+  #teacher.show{display:block;}
+  #teacher h1{color:var(--purple);font-size:26px;text-align:center;margin-bottom:4px;}
+  #teacher .lead{text-align:center;color:#5a5470;font-weight:700;font-size:14px;margin-bottom:18px;}
+  .trick{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;
+    box-shadow:0 4px 14px rgba(120,80,200,.1);border-left:6px solid var(--pink);}
+  .trick:nth-child(odd){border-left-color:var(--blue);}
+  .trick .tnum{font-family:'Baloo 2';font-size:13px;font-weight:800;color:#fff;background:var(--pink);
+    border-radius:20px;padding:3px 12px;display:inline-block;margin-bottom:8px;}
+  .trick:nth-child(odd) .tnum{background:var(--blue);}
+  .trick h3{font-size:18px;color:var(--ink);margin-bottom:6px;}
+  .trick p{font-size:14px;color:#5a5470;font-weight:600;line-height:1.45;}
+  .trick .seen{font-size:13px;color:var(--purple);font-weight:800;margin-top:8px;background:#f3efff;border-radius:10px;padding:7px 10px;}
+  #teacher .closeT{display:block;margin:6px auto 0;background:var(--purple);color:#fff;border:none;border-radius:16px;
+    padding:13px 30px;font-family:'Baloo 2';font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 5px 0 #5536c0;}
+  #teacher .closeT:active{transform:translateY(3px);box-shadow:0 2px 0 #5536c0;}
+
+  /* end statistics */
+  .stat-spent{background:linear-gradient(135deg,#ff3b5c,#ff8a00);color:#fff;border-radius:18px;
+    padding:16px;margin:12px 0;}
+  .stat-spent .lbl{font-size:14px;font-weight:800;opacity:.9;}
+  .stat-spent .amt{font-family:'Baloo 2';font-size:46px;font-weight:800;line-height:1;}
+  .statrow{display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:var(--ink);
+    padding:6px 2px;border-bottom:1px dashed #eee;}
+  .statrow span:last-child{color:var(--purple);}
+  .buylist{text-align:left;background:#f5f3ff;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px;font-weight:700;color:var(--ink);}
+  .buylist .bl-item{display:flex;justify-content:space-between;padding:2px 0;}
+
+  .confetti{position:absolute;width:9px;height:9px;z-index:40;border-radius:2px;pointer-events:none;}
+
+  .toast{position:absolute;top:172px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:45;
+    background:var(--ink);color:#fff;padding:10px 16px;border-radius:20px;font-weight:800;font-size:13px;
+    opacity:0;transition:all .3s var(--ease-out);box-shadow:0 6px 16px rgba(0,0,0,.3);max-width:90%;text-align:center;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;}}
+
+  /* ---------- name entry ---------- */
+  .name-input{width:100%;max-width:280px;border:none;border-radius:16px;padding:13px 16px;
+    font-family:'Baloo 2';font-size:18px;font-weight:800;text-align:center;color:var(--ink);
+    box-shadow:0 5px 0 rgba(0,0,0,.25);outline:none;}
+  .name-input.shake{animation:shakeX .4s;}
+  @keyframes shakeX{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-7px);}40%,80%{transform:translateX(7px);}}
+  .name-hint{color:rgba(255,255,255,.75);font-size:12px;font-weight:800;margin-top:-6px;}
+  .quiz-start-btn{background:linear-gradient(135deg,var(--pink),var(--purple));border:none;border-radius:18px;
+    padding:12px 26px;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#fff;
+    box-shadow:0 6px 0 #7a2a8c;cursor:pointer;transition:transform .12s var(--ease-out),box-shadow .12s var(--ease-out);}
+  .quiz-start-btn:active{transform:translateY(3px);box-shadow:0 3px 0 #7a2a8c;}
+
+  /* ---------- coin packs ---------- */
+  .coinpack{position:relative;background:linear-gradient(160deg,#fff7df,#ffe9a8);border:3px solid #ffd23f;
+    border-radius:16px;padding:12px 8px 10px;text-align:center;box-shadow:0 5px 0 #e0b32a;}
+  .coinpack .amt{font-family:'Baloo 2';font-weight:800;font-size:20px;color:#a8690a;line-height:1;}
+  .coinpack .amt small{font-size:12px;}
+  .coinpack .pile{font-size:30px;line-height:1.1;}
+  .coinpack .tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;
+    background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:10px;padding:3px 8px;box-shadow:0 2px 4px rgba(0,0,0,.3);}
+  .coinpack .bonus{font-size:10px;font-weight:900;color:var(--green);min-height:12px;}
+  .coinpack button{margin-top:6px;border:none;border-radius:12px;padding:9px 6px;font-weight:900;
+    font-size:13px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#2ecc71,#16a085);
+    box-shadow:0 4px 0 #0e7a5f;width:100%;font-family:'Baloo 2';}
+  .coinpack button:active{transform:translateY(2px);box-shadow:0 2px 0 #0e7a5f;}
+  .coinpack .pr{font-weight:900;font-size:15px;color:var(--green);margin-top:2px;}
+
+  /* ---------- QUIZ MODE ---------- */
+  #quiz{position:absolute;inset:0;z-index:80;background:linear-gradient(160deg,#1a1145,#3a1d7a,#6b2fa0);
+    overflow-y:auto;display:none;padding:14px 14px 24px;text-align:center;}
+  #quiz.show{display:block;animation:fadeIn .25s ease-out;}
+  #quiz h1{color:#fff;font-size:24px;text-shadow:0 3px 0 rgba(0,0,0,.3);margin-bottom:2px;}
+  #quiz .qlead{color:var(--yellow);font-weight:800;font-size:13px;margin-bottom:10px;}
+  .qprogress{display:flex;gap:4px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;}
+  .qdot{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.25);}
+  .qdot.done{background:var(--green);} .qdot.cur{background:var(--yellow);transform:scale(1.25);}
+  .qcard{background:#fff;border-radius:22px;padding:16px 14px;max-width:420px;margin:0 auto;
+    box-shadow:0 14px 34px rgba(0,0,0,.4);animation:modalIn .3s var(--ease-out);}
+  .qcard .qnum{font-family:'Baloo 2';font-size:12px;font-weight:800;color:#fff;background:var(--purple);
+    border-radius:20px;padding:4px 14px;display:inline-block;margin-bottom:10px;}
+  .qcard h2{font-size:20px;color:var(--ink);margin-bottom:14px;line-height:1.2;}
+  .qopt{display:block;width:100%;border:3px solid #e7e2ff;background:#f5f3ff;border-radius:14px;
+    padding:13px 14px;margin-bottom:9px;font-family:'Nunito';font-weight:800;font-size:14px;color:var(--ink);
+    cursor:pointer;text-align:left;transition:transform .1s var(--ease-out),border-color .15s;}
+  .qopt:active{transform:scale(.98);}
+  .qopt.correct{border-color:var(--green);background:#e7faef;}
+  .qopt.wrong{border-color:var(--red);background:#ffeef1;}
+  .qopt:disabled{cursor:default;}
+  .qfeedback{font-weight:900;font-size:14px;margin:10px 0 4px;min-height:20px;line-height:1.3;}
+  .qfeedback.ok{color:var(--green);} .qfeedback.no{color:var(--red);}
+  .qnext{background:linear-gradient(135deg,var(--yellow),#ff8a00);border:none;border-radius:14px;
+    padding:12px 28px;font-family:'Baloo 2';font-size:16px;font-weight:800;color:#fff;
+    box-shadow:0 5px 0 #c96a00;cursor:pointer;margin-top:6px;}
+  .qnext:active{transform:translateY(3px);box-shadow:0 2px 0 #c96a00;}
+
+  /* mini replica screen for "find the trick" – flow layout so nothing is cut off */
+  .replica{width:100%;max-width:300px;margin:4px auto 8px;display:flex;flex-direction:column;gap:6px;
+    background:linear-gradient(160deg,#1a1145,#3a1d7a,#6b2fa0);border-radius:16px;
+    border:4px solid #2a1a55;box-shadow:inset 0 0 30px rgba(0,0,0,.5);padding:7px;}
+  .rep-row{display:flex;gap:6px;justify-content:space-between;align-items:center;}
+  .rep-mid{display:flex;gap:6px;align-items:stretch;}
+  .rep-stage{flex:1;position:relative;min-height:104px;background:rgba(255,255,255,.05);border-radius:10px;overflow:hidden;}
+  .hot{cursor:pointer;border-radius:10px;transition:transform .1s;}
+  .hot:active{transform:scale(.94);}
+  .hot.flash-ok{animation:flashOk .6s;box-shadow:0 0 0 4px rgba(46,204,113,.9);}
+  .hot.flash-no{animation:flashNo .5s;}
+  @keyframes flashOk{0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,0);}40%{box-shadow:0 0 0 5px rgba(46,204,113,.9);}}
+  @keyframes flashNo{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+  .rep-pill{background:rgba(255,255,255,.95);border-radius:12px;padding:6px 9px;font-weight:900;font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+  .rep-spend{background:rgba(255,255,255,.9);color:var(--ink);font-weight:900;font-size:11px;border-radius:12px;padding:6px 8px;white-space:nowrap;}
+  .rep-banner{background:linear-gradient(90deg,var(--red),#ff7b3b);color:#fff;font-weight:900;font-size:10px;border-radius:10px;padding:7px;text-align:center;}
+  .rep-lb{background:rgba(255,255,255,.92);border-radius:10px;padding:6px 7px;font-size:9px;font-weight:800;width:108px;line-height:1.5;}
+  .rep-lb b{color:var(--purple);}
+  .rep-btn{border:none;border-radius:12px;padding:10px 4px;font-family:'Baloo 2';font-weight:800;font-size:12px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.3);flex:1;}
+  .qclose{display:block;margin:14px auto 0;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:14px;
+    padding:11px 26px;font-family:'Baloo 2';font-weight:800;font-size:15px;cursor:pointer;}
+  .qscore{font-family:'Baloo 2';font-size:52px;font-weight:800;color:var(--purple);line-height:1;}
+  .qbadge{font-size:60px;}
+
+  /* ================= ROBLOX PIXEL MODE ================= */
+  #app.roblox{image-rendering:pixelated;image-rendering:crisp-edges;}
+  #app.roblox h1,#app.roblox h2,#app.roblox h3,#app.roblox .pill,#app.roblox .barbtn,
+  #app.roblox .tab,#app.roblox .buy-btn,#app.roblox #countdownBanner,#app.roblox #leaderboard,
+  #app.roblox .xptext,#app.roblox .item .nm,#app.roblox .item button,#app.roblox .pr,
+  #app.roblox .start-btn,#app.roblox .closeT,#app.roblox .qnext,#app.roblox .spent-mini,
+  #app.roblox .lb-row,#app.roblox .toast,#app.roblox .pop,#app.roblox #combo,#app.roblox .price,
+  #app.roblox .coinpack,#app.roblox .coinpack button{
+    font-family:'Press Start 2P','Courier New',monospace !important;letter-spacing:0;}
+  /* square everything = blocky */
+  #app.roblox .pill,#app.roblox .barbtn,#app.roblox .modal,#app.roblox .item,#app.roblox .tab,
+  #app.roblox .buy-btn,#app.roblox #leaderboard,#app.roblox #countdownBanner,#app.roblox .xpwrap,
+  #app.roblox .xpfill,#app.roblox .name-input,#app.roblox .start-btn,#app.roblox .quiz-start-btn,
+  #app.roblox .coinpack,#app.roblox .swatch,#app.roblox .qcard,#app.roblox .qopt,#app.roblox .replica,
+  #app.roblox .lb-row.you,#app.roblox .toast{border-radius:0 !important;}
+  /* pixel/stepped shadows + hard borders */
+  #app.roblox .pill,#app.roblox #leaderboard,#app.roblox .item{box-shadow:4px 4px 0 rgba(0,0,0,.35);border:3px solid #2a2a2a;}
+  #app.roblox .barbtn,#app.roblox .buy-btn,#app.roblox .start-btn,#app.roblox .tab.active,#app.roblox .closeT{
+    box-shadow:4px 4px 0 rgba(0,0,0,.45);border:3px solid #1c1c1c;}
+  #app.roblox .modal{border:5px solid #2a2a2a;box-shadow:8px 8px 0 rgba(0,0,0,.5);}
+  /* keep long text readable but still chunky */
+  #app.roblox .modal p,#app.roblox .item .ds,#app.roblox .lead,#app.roblox .qfeedback,#app.roblox .name-hint{
+    font-family:'Courier New',monospace !important;font-weight:800;}
+  #app.roblox h1{font-size:18px;line-height:1.4;}
+  #app.roblox .modal h2,#app.roblox #quiz h1{font-size:14px;line-height:1.5;}
+  #app.roblox .pill{font-size:11px;} #app.roblox .barbtn{font-size:10px;}
+  #app.roblox .buy-btn{font-size:12px;animation:none;}
+  #app.roblox .start-btn{font-size:14px;}
+  /* blocky player avatar (generic pixel character, not Roblox IP) */
+  #app.roblox #player{
+    color:transparent;width:52px;height:64px;font-size:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='16' shape-rendering='crispEdges'%3E%3Crect width='13' height='16' fill='none'/%3E%3Crect x='3' y='0' width='7' height='6' fill='%23f2c28b'/%3E%3Crect x='4' y='2' width='2' height='2' fill='%23241b4d'/%3E%3Crect x='8' y='2' width='1' height='2' fill='%23241b4d'/%3E%3Crect x='5' y='4' width='3' height='1' fill='%23c0392b'/%3E%3Crect x='2' y='6' width='9' height='6' fill='%233aa0ff'/%3E%3Crect x='0' y='6' width='2' height='5' fill='%23f2c28b'/%3E%3Crect x='11' y='6' width='2' height='5' fill='%23f2c28b'/%3E%3Crect x='4' y='12' width='2' height='4' fill='%237b4dff'/%3E%3Crect x='7' y='12' width='2' height='4' fill='%237b4dff'/%3E%3C/svg%3E");
+    background-size:contain;background-repeat:no-repeat;background-position:center;filter:drop-shadow(3px 4px 0 rgba(0,0,0,.5));}
+  #app.roblox #player::after{display:none;}
+  /* blocky falling pieces */
+  #app.roblox .star.rblock{width:34px;height:34px;border:3px solid rgba(0,0,0,.45);
+    box-shadow:inset -4px -4px 0 rgba(0,0,0,.22),inset 4px 4px 0 rgba(255,255,255,.30);border-radius:0;filter:none;}
+  #app.roblox .star.rblock:active{transform:scale(.85);}
+  #app.roblox.framed{box-shadow:0 0 0 6px #2a2a2a;}
+  /* pixel-grid ground feel via overlay */
+  #app.roblox::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.18;
+    background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
+    background-size:26px 26px;}
+  /* ---------- quiz certificate ---------- */
+  .cert{background:linear-gradient(160deg,#fffdf5,#fff6e0);border:8px double #c98a00;border-radius:14px;
+    padding:22px 18px;max-width:420px;margin:0 auto;color:#3a2d00;box-shadow:0 14px 34px rgba(0,0,0,.4);position:relative;}
+  .cert .seal{font-size:46px;line-height:1;}
+  .cert h2{font-family:'Baloo 2';font-size:24px;color:#a8690a;margin:6px 0 2px;}
+  .cert .sub{font-size:12px;font-weight:800;color:#8a6a1a;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;}
+  .cert .who{font-family:'Baloo 2';font-size:30px;font-weight:800;color:var(--purple);border-bottom:3px solid #e0c060;
+    display:inline-block;padding:2px 18px 4px;margin:4px 0 10px;line-height:1.1;}
+  .cert .body-txt{font-size:14px;font-weight:700;color:#5a4a10;line-height:1.4;margin-bottom:12px;}
+  .cert .cert-score{font-family:'Baloo 2';font-size:20px;font-weight:800;color:#a8690a;}
+  .cert .cert-foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;font-size:11px;font-weight:800;color:#8a6a1a;}
+  .cert .sign{border-top:2px solid #c9a44a;padding-top:3px;min-width:110px;text-align:center;}
+  .cert .stars{font-size:18px;letter-spacing:3px;color:#e0b32a;}
+
+  @media print{
+    body{background:#fff !important;}
+    body *{visibility:hidden !important;}
+    #certPrint, #certPrint *{visibility:visible !important;}
+    #certPrint{position:fixed !important;inset:0 !important;display:flex !important;align-items:center;justify-content:center;
+      background:#fff !important;z-index:9999;padding:20px;}
+    #certPrint .cert-actions{display:none !important;}
+    #certPrint .cert{box-shadow:none;max-width:520px;}
+  }
+
+  /* ---------------- responsive design ---------------- */
+  /* narrow phones */
+  @media (max-width:380px){
+    #hud{padding:6px 7px 0;gap:4px;}
+    .pill{font-size:13px;padding:5px 9px;gap:4px;}
+    .hearts{font-size:15px;}
+    .spent-mini{font-size:10px;}
+    #countdownBanner{font-size:11px;padding:6px 8px;}
+    #leaderboard{width:98px;font-size:9px;top:110px;padding:5px 6px;}
+    #leaderboard h3{font-size:10px;}
+    .barbtn{font-size:13px;padding:10px 3px;}
+    .star{font-size:32px;} #field.giant .star:not(.special){font-size:46px;}
+    #player{font-size:50px;}
+    #combo{font-size:22px;}
+    .modal h2{font-size:20px;} .modal{padding:18px 14px;}
+    .qcard h2{font-size:17px;}
+  }
+  @media (max-width:330px){
+    .pill{font-size:12px;padding:4px 7px;}
+    #leaderboard{width:90px;}
+    .star{font-size:28px;}
+    #player{font-size:44px;}
+    .barbtn{font-size:12px;}
+  }
+  /* short screens (and most landscape phones) */
+  @media (max-height:660px){
+    #player{bottom:74px;font-size:48px;}
+    #combo{top:120px;}
+    #teacherBtn{bottom:124px;}
+  }
+  @media (max-height:520px){
+    #start{gap:8px;padding:14px;}
+    #start .planet{display:none;}
+    #player{bottom:60px;font-size:40px;}
+    #countdownBanner{font-size:10px;padding:4px 8px;}
+    .xpwrap{height:11px;} .xptext{font-size:9px;}
+    #combo{top:84px;}
+    .modal .big{font-size:34px;}
+  }
+  /* large / desktop: keep the phone-style frame, vertically centered */
+  @media (min-width:600px) and (min-height:680px){
+    body{display:flex;align-items:center;justify-content:center;}
+    #app{border-radius:22px;height:min(100dvh,1300px);}
+  }
+  /* iPad / tablet: bigger, comfortable touch targets (primary device: iPad 11") */
+  @media (min-width:680px){
+    .pill{font-size:19px;padding:9px 18px;border-radius:18px;gap:7px;}
+    .hearts{font-size:24px;}
+    .spent-mini{font-size:14px;padding:3px 12px;}
+    .xpwrap{height:18px;} .xptext{font-size:13px;}
+    #countdownBanner{font-size:18px;padding:11px 18px;border-radius:18px;}
+    #leaderboard{width:172px;font-size:14px;top:150px;right:10px;padding:9px 12px;border-radius:16px;}
+    #leaderboard h3{font-size:15px;}
+    .star{font-size:54px;} #field.giant .star:not(.special){font-size:74px;}
+    .star.special{font-size:64px;} .star.special::after{font-size:24px;}
+    #app.roblox .star.rblock{width:48px;height:48px;}
+    #player{font-size:88px;bottom:110px;}
+    #combo{font-size:38px;top:200px;}
+    .pop{font-size:30px;} .pop.xl{font-size:46px;}
+    #bottomBar{gap:12px;padding:14px;}
+    .barbtn{font-size:21px;padding:17px 8px;border-radius:20px;}
+    #endBtn{padding:17px 22px;}
+    #teacherBtn{font-size:16px;padding:11px 22px;bottom:170px;}
+    .modal{max-width:520px;padding:26px 24px;} .modal h2{font-size:26px;} .modal p{font-size:17px;}
+    .modal .big{font-size:58px;} .buy-btn{font-size:21px;padding:17px;} .price{font-size:34px;}
+    .item .nm{font-size:16px;} .item .ds{font-size:13px;} .item button{font-size:15px;}
+    #teacher{padding:30px 28px 60px;} #teacher h1{font-size:34px;} #teacher .lead{font-size:18px;}
+    .trick h3{font-size:19px;} .trick p{font-size:15px;}
+    #quiz h1{font-size:32px;} #quiz .qlead{font-size:17px;}
+    .qcard{max-width:560px;padding:26px 22px;} .qcard h2{font-size:24px;} .qopt{font-size:17px;padding:16px;}
+    .qnum{font-size:14px;} .qnext{font-size:19px;padding:15px 34px;}
+    .replica{max-width:380px;} .qclose{font-size:17px;}
+    .coinpack .amt{font-size:24px;} .coinpack button{font-size:16px;}
+    .start-btn{padding:20px 52px;}
+  }
+  /* iPad landscape: pull the rocket up a touch and keep the field usable */
+  @media (min-width:680px) and (max-height:840px) and (orientation:landscape){
+    #player{bottom:92px;font-size:74px;}
+    #leaderboard{top:120px;}
+    #combo{top:150px;}
+  }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="start">
+    <div class="planet">🪐</div>
+    <h1>Star Collector<br>Adventure</h1>
+    <div class="sub">Fang die Sterne! Werde der Beste! ✨</div>
+    <input id="nameInput" class="name-input" maxlength="12" placeholder="✏️ Dein Name" autocomplete="off">
+    <div id="nameHint" class="name-hint">Dein Name kommt in die Bestenliste!</div>
+    <button class="start-btn" id="startBtn">▶ SPIELEN</button>
+    <div style="color:rgba(255,255,255,.6);font-size:12px;font-weight:700;margin-top:4px;">Tippe die Sterne an, bevor sie verschwinden</div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-row">
+      <div class="pill score">🏆 <span id="scoreVal">0</span></div>
+      <div class="pill coins" id="coinPill" style="cursor:pointer;">🪙 <span id="coinVal">50</span></div>
+      <div class="pill"><span class="hearts" id="hearts">❤️❤️❤️❤️❤️</span></div>
+    </div>
+    <div class="xpwrap"><div class="xpfill" id="xpFill"></div><span class="xptext" id="xpText">Level 1</span></div>
+    <div class="spent-mini" id="spentMini">💸 <span id="spentVal">0,00</span> €</div>
+    <div id="countdownBanner">⏰ MEGA STAR PACK endet in <span id="bannerTime">23:47:12</span> – Jetzt zuschlagen!</div>
+  </div>
+
+  <div id="leaderboard">
+    <h3>🏅 Bestenliste</h3>
+    <div id="lbList"></div>
+  </div>
+
+  <div id="field"></div>
+  <div id="combo"></div>
+  <div id="player">🚀</div>
+
+  <button id="teacherBtn">🍎 Lehrermodus</button>
+  <div id="bottomBar">
+    <button class="barbtn" id="shopBtn">🛍️ Shop</button>
+    <button class="barbtn" id="boxBtn" disabled>🎁 Kiste <span class="badge" id="boxBadge" style="display:none">!</span></button>
+    <button class="barbtn" id="endBtn">🏁</button>
+  </div>
+
+  <div id="overlay"><div class="modal" id="modal"></div></div>
+  <div class="toast" id="toast"></div>
+
+  <div id="teacher">
+    <h1>🍎 Lehrermodus</h1>
+    <div class="lead">Diese Tricks waren im Spiel versteckt. So halten echte Spiele Kinder möglichst lange – und bringen sie zum Geldausgeben.</div>
+    <div class="trick"><span class="tnum">Trick 1</span><h3>🪙 Virtuelle Währung</h3><p>Echtes Geld wird in „Sternen-Coins" umgetauscht. So sieht man nicht mehr, dass man <b>echtes Geld</b> ausgibt. Große Pakete wirken „billiger" pro Coin – damit man mehr kauft.</p><div class="seen">Gesehen: Der „🪙 Coins"-Shop mit Paketen von 0,99 € bis 29,99 €.</div></div>
+    <div class="trick"><span class="tnum">Trick 2</span><h3>🎁 Tägliche Belohnung</h3><p>„Komm morgen wieder!" Damit man jeden Tag spielt. Eine <b>Gewohnheitsfalle</b>.</p><div class="seen">Gesehen: „Tag 3 Belohnung" am Anfang.</div></div>
+    <div class="trick"><span class="tnum">Trick 3</span><h3>⏰ Zeitdruck (FOMO)</h3><p>Der rote Countdown macht Angst, etwas zu verpassen. So kauft man schnell, ohne nachzudenken.</p><div class="seen">Gesehen: Das blinkende rote Banner oben.</div></div>
+    <div class="trick"><span class="tnum">Trick 4</span><h3>🎰 Glücks-Kisten</h3><p>Man weiß vorher nicht, was drin ist – wie beim <b>Glücksspiel</b>. Erste Kiste gratis, danach kostenpflichtig.</p><div class="seen">Gesehen: Die „Magische Kiste" mit Glücksrad.</div></div>
+    <div class="trick"><span class="tnum">Trick 5</span><h3>🏅 Sozialer Druck</h3><p>„Du bist fast auf Platz 3!" Die Bestenliste treibt an, immer weiterzuspielen.</p><div class="seen">Gesehen: Die Bestenliste rechts.</div></div>
+    <div class="trick"><span class="tnum">Trick 6</span><h3>❤️ Warten oder Zahlen</h3><p>Sind die Herzen leer, muss man warten – oder zahlen. Das Warten nervt extra.</p><div class="seen">Gesehen: „Keine Energie – warte oder kaufe Herzen".</div></div>
+    <div class="trick"><span class="tnum">Trick 7</span><h3>🦄 Teure Upgrades</h3><p>Coole Sachen, die das Spiel leichter machen – aber so teuer, dass man zum Kaufen verleitet wird.</p><div class="seen">Gesehen: Der Shop mit Raketen, Farben &amp; Zusätzen.</div></div>
+    <div class="trick"><span class="tnum">Trick 8</span><h3>🔁 Endlos-Schleife</h3><p>Level, Combos, XP-Balken und ständige Belohnungen sorgen dafür, dass es <b>nie ein gutes Ende</b> gibt – man will immer „noch eins".</p><div class="seen">Gesehen: Level-Balken oben &amp; Combo-Anzeige.</div></div>
+    <div class="trick"><span class="tnum">Trick 9</span><h3>🟦 Abos &amp; Spezial-Modi</h3><p>VIP-Abo (zahlt <b>jede Woche</b>) und kostenpflichtige Modi (z.B. der „Roblox-Modus" für 4,99 €) – immer neue Dinge zum Kaufen.</p><div class="seen">Gesehen: VIP-👑 und der „Roblox-Modus" im Shop.</div></div>
+    <div class="trick"><span class="tnum">Tipp</span><h3>💸 Der Geldzähler</h3><p>Im Spiel war er klein – am Ende groß. So sieht man, wie kleine Beträge sich zu <b>viel echtem Geld</b> summieren. Echte Spiele zeigen das <b>nie</b>.</p><div class="seen">Frag die Kinder: Wie viel hast du am Ende „ausgegeben"?</div></div>
+    <button class="closeT" id="openQuizFromTeacher" style="background:var(--pink);box-shadow:0 5px 0 #c92a6a;margin-bottom:10px;">🧠 Quiz starten</button>
+    <button class="closeT" id="closeTeacher">Zurück zum Spiel</button>
+  </div>
+
+  <div id="quiz"></div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const field=$('field'), player=$('player'), overlay=$('overlay'), modal=$('modal'), app=$('app');
+  const fmt = n => n.toFixed(2).replace('.',',');
+
+  let gamePaused=false;
+  let spawnTimer=null, specialTimer=null, magnetTimer=null, magnetUntil=0, slowUntil=0, multUntil=0, comboTimer=null;
+
+  function makeState(){ return {
+    running:false, score:0, coins:50, hearts:5, spent:0,
+    starsCaught:0, nextBox:10, freeBoxUsed:false, playerX:0.5,
+    lastOfferAt:0, vip:false, mult:1, shields:0, permMagnet:false,
+    glitter:false, mode:'normal', combo:0, comboBest:0, level:1, xp:0,
+    skin:'🚀', startTime:0, warnTier:0,
+    ownedSkins:{'🚀':true}, ownedThemes:{space:true}, theme:'space',
+    settings:{}, purchases:[],
+  }; }
+  let state = makeState();
+
+  /* ---------- music engine (Web Audio – funktioniert offline) ---------- */
+  let audioCtx=null, musicOn=false, musicTimer=null, musicStep=0;
+  const MELODY=[523,659,784,659,523,587,659,587,523,659,784,880,784,659,587,523];
+  function ensureAudio(){ if(!audioCtx){ try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null;} }
+    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
+  function playNote(f){ if(!audioCtx||!f) return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
+    const t=audioCtx.currentTime; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.22); o.start(t); o.stop(t+0.24); }
+  function startMusic(){ if(musicOn) return; if(!ensureAudio()) { toast('🔇 Ton wird vom Browser blockiert'); return; }
+    musicOn=true; musicTimer=setInterval(()=>{ if(!musicOn)return; playNote(MELODY[musicStep%MELODY.length]); musicStep++; },260); }
+  function stopMusic(){ musicOn=false; clearInterval(musicTimer); musicTimer=null; }
+
+  /* ---------- helpers ---------- */
+  function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1700);}
+  function record(name,cost){ state.purchases.push({name,cost}); }
+  function updateHUD(){
+    $('scoreVal').textContent=state.score;
+    $('coinVal').textContent=state.coins;
+    $('hearts').textContent='❤️'.repeat(state.hearts)+'🖤'.repeat(5-state.hearts);
+    renderLeaderboard();
+  }
+  function updateSpent(){
+    $('spentVal').textContent=fmt(state.spent);
+    const m=$('spentMini');m.classList.remove('bump');void m.offsetWidth;m.classList.add('bump');
+  }
+  function openModal(html){ modal.innerHTML=html; overlay.classList.add('show'); pauseGame(); }
+  function closeModal(){ overlay.classList.remove('show'); resumeGame(); }
+  function pauseGame(){ gamePaused=true; clearInterval(spawnTimer); clearInterval(specialTimer); }
+  function resumeGame(){ if(state.running){ gamePaused=false; startSpawning(); startSpecials(); } }
+
+  /* fake purchase – tracks real money "spent" */
+  function fakePurchase(amount,name){
+    state.spent+=amount; updateSpent(); if(name) record(name, fmt(amount)+' €');
+    toast('💳 Demo – KEIN echtes Geld!');
+    const tier=Math.floor(state.spent/10);
+    if(tier>state.warnTier){ state.warnTier=tier; setTimeout(showSpendGate,450); }
+  }
+
+  /* hypocritical "are you allowed to spend money?" gate every 10 € */
+  function showSpendGate(){
+    const qs=[]; for(let i=0;i<6;i++){ const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8); qs.push({a,b,ans:a*b}); }
+    openModal(`<span class="big">🛑</span><h2>Achtung – echtes Geld!</h2>
+      <p>Du hast schon <b>${fmt(state.spent)} € echtes Geld</b> ausgegeben! 😱<br>
+      Bestätige, dass du wirklich Geld ausgeben <b>darfst</b> – löse alle 6 Aufgaben richtig:</p>
+      <div class="mathgrid">${qs.map((q,i)=>`<div class="mq"><span>${q.a} × ${q.b} =</span><input inputmode="numeric" pattern="[0-9]*" id="mq${i}"></div>`).join('')}</div>
+      <div id="mathMsg" class="mathmsg"></div>
+      <button class="buy-btn green" id="mathOk">✅ Bestätigen</button>`);
+    $('mathOk').onclick=()=>{
+      let allok=true;
+      qs.forEach((q,i)=>{ const inp=$('mq'+i); const v=parseInt(inp.value,10);
+        if(v===q.ans){ inp.classList.add('right'); inp.classList.remove('wrong'); }
+        else { allok=false; inp.classList.add('wrong'); inp.classList.remove('right'); } });
+      if(allok){ toast('✅ Bestätigt – du „darfst" weiter Geld ausgeben 💸'); closeModal(); }
+      else { $('mathMsg').textContent='❌ Mindestens eine Aufgabe ist falsch. Versuch es nochmal!'; }
+    };
+  }
+
+  /* ---------- countdown banner ---------- */
+  let secs=23*3600+47*60+12;
+  setInterval(()=>{ secs=secs>0?secs-1:23*3600+59*60+59;
+    const h=String(Math.floor(secs/3600)).padStart(2,'0'),m=String(Math.floor(secs%3600/60)).padStart(2,'0'),s=String(secs%60).padStart(2,'0');
+    $('bannerTime').textContent=`${h}:${m}:${s}`; },1000);
+
+  /* ---------- stars ---------- */
+  const STARS_NORMAL=[{e:'⭐',pts:1,coin:1,w:6},{e:'💙',pts:3,coin:2,w:3},{e:'💜',pts:5,coin:4,w:1}];
+  const STARS_ROBLOX=[
+    {e:'',pts:1,coin:1,w:6,color:'#2ecc71'},
+    {e:'',pts:3,coin:2,w:3,color:'#3aa0ff'},
+    {e:'',pts:5,coin:4,w:1,color:'#ff5fa2'}];
+  function currentStars(){ return state.mode==='roblox'?STARS_ROBLOX:STARS_NORMAL; }
+  function pickStar(){ const arr=currentStars(); const tot=arr.reduce((a,b)=>a+b.w,0); let r=Math.random()*tot;
+    for(const s of arr){ if(r<s.w) return s; r-=s.w; } return arr[0]; }
+
+  function spawnStar(){
+    if(!state.running) return;
+    const data=pickStar();
+    const el=document.createElement('div'); el.className='star'; el.textContent=data.e;
+    if(state.mode==='roblox'){ el.classList.add('rblock'); el.style.background=data.color||'#3aa0ff'; el.textContent=''; }
+    const w=field.clientWidth,h=field.clientHeight, x=20+Math.random()*(w-60);
+    el.style.left=x+'px'; el.style.top='-50px'; field.appendChild(el);
+    let dur=(2600+Math.random()*1400), t=0, last=performance.now(); let caught=false;
+    function frame(now){
+      if(!el.isConnected||caught) return;
+      const dt=now-last; last=now;
+      const mul=(performance.now()<slowUntil)?0.55:1;
+      if(!gamePaused&&state.running) t+=dt*mul;
+      const p=t/dur;
+      if(p>=1){ el.remove(); missStar(); return; }
+      el.style.top=(p*(h+40)-50)+'px';
+      // catch by sweeping the rocket into the star (in addition to tapping)
+      if(!gamePaused&&state.running){
+        const r=el.getBoundingClientRect(), pr=player.getBoundingClientRect();
+        if(r.right>pr.left+6 && r.left<pr.right-6 && r.bottom>pr.top+4 && r.top<pr.bottom-6){
+          caught=true; const fr=field.getBoundingClientRect();
+          catchStar(data, r.left-fr.left+r.width/2, r.top-fr.top, false); el.remove(); return;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    el.addEventListener('pointerdown',()=>{ if(caught)return; caught=true;
+      const r=el.getBoundingClientRect(),fr=field.getBoundingClientRect();
+      catchStar(data,r.left-fr.left+18,r.top-fr.top); el.remove(); });
+  }
+  function startSpawning(){ clearInterval(spawnTimer); spawnTimer=setInterval(spawnStar,900); }
+
+  function catchStar(data,x,y,moveTo){
+    // combo
+    state.combo++; state.comboBest=Math.max(state.comboBest,state.combo);
+    clearTimeout(comboTimer); comboTimer=setTimeout(()=>{state.combo=0;},2200);
+    const cmul=state.combo>=10?3:state.combo>=5?2:1;
+    if(state.combo>=3){ const c=$('combo'); c.textContent='🔥 COMBO x'+cmul+' ('+state.combo+')';
+      c.classList.remove('show'); void c.offsetWidth; c.classList.add('show'); }
+    const pts=data.pts*(state.mult||1)*cmul;
+    state.score+=pts; state.coins+=data.coin; state.starsCaught++;
+    if(moveTo!==false){ state.playerX=Math.max(.06,Math.min(.94,x/field.clientWidth)); player.style.left=(state.playerX*100)+'%'; }
+    const pop=document.createElement('div'); pop.className='pop'+(state.settings.xlpop?' xl':''); pop.textContent='+'+pts;
+    pop.style.left=x+'px'; pop.style.top=y+'px'; field.appendChild(pop); setTimeout(()=>pop.remove(),800);
+    if(state.settings.confetti) confetti(x,y,6);
+    addXP(pts); updateHUD();
+    if(state.starsCaught>=state.nextBox) enableBox();
+    if(state.starsCaught-state.lastOfferAt>=45 && !overlay.classList.contains('show')){ state.lastOfferAt=state.starsCaught; coinOffer(); }
+  }
+  function missStar(){
+    state.combo=0;
+    if(state.shields>0){ state.shields--; toast('🛡️ Schild hat gerettet! ('+state.shields+' übrig)'); return; }
+    if(!state.running) return;
+    state.hearts=Math.max(0,state.hearts-1); updateHUD();
+    if(state.hearts<=0) outOfEnergy();
+  }
+
+  /* ---------- XP / Level (retention) ---------- */
+  function addXP(p){
+    state.xp+=p; let need=state.level*120;
+    while(state.xp>=need){ state.xp-=need; state.level++; need=state.level*120; levelUp(); }
+    $('xpFill').style.width=Math.min(100,(state.xp/need)*100)+'%';
+    $('xpText').textContent='Level '+state.level;
+  }
+  function levelUp(){
+    const reward=state.level*10; state.coins+=reward;
+    confetti(field.clientWidth/2,160,18);
+    toast('🎉 Level '+state.level+'! +'+reward+' Coins – weiter so!');
+  }
+
+  /* ---------- hearts / energy ---------- */
+  function outOfEnergy(){
+    if(state.vip){ state.hearts=5; updateHUD(); toast('👑 VIP: sofort weiter, kein Warten!'); return; }
+    openModal(`<span class="big">😢</span><h2>Keine Energie mehr!</h2>
+      <p>Deine Herzen sind leer. Warte <span class="mini-timer">15 Sekunden</span> … oder spiel sofort weiter!</p>
+      <button class="buy-btn" id="buyHearts">❤️ 5 Herzen sofort – nur 0,49 €</button>
+      <button class="decline" id="waitBtn">Lieber warten…</button>`);
+    $('buyHearts').onclick=()=>{ fakePurchase(0.49,'5 Herzen'); state.hearts=5; updateHUD(); closeModal(); };
+    $('waitBtn').onclick=startWait;
+  }
+  function startWait(){
+    let left=15;
+    openModal(`<span class="big" style="animation:none">⏳</span><h2>Warten…</h2>
+      <p>Noch <span class="mini-timer" id="waitCount">${left}</span> Sekunden, bis die Herzen zurück sind. <b>Langweilig, oder?</b></p>
+      <div class="nag">⚡ Keine Lust zu warten?<br>Herzen SOFORT für nur 0,49 €!</div>
+      <button class="buy-btn" id="nagBuy">❤️ Jetzt sofort weiterspielen – 0,49 €</button>`);
+    $('nagBuy').onclick=()=>{ clearInterval(t); fakePurchase(0.49,'5 Herzen'); state.hearts=5; updateHUD(); closeModal(); };
+    const t=setInterval(()=>{ left--; const c=$('waitCount'); if(c)c.textContent=left;
+      if(left<=0){ clearInterval(t); state.hearts=5; updateHUD();
+        openModal(`<span class="big">❤️</span><h2>Herzen sind zurück!</h2>
+          <p>Geschafft! Merk dir: echte Spiele lassen dich oft <b>viele Minuten</b> warten – damit du lieber zahlst.</p>
+          <button class="buy-btn green" id="okWait">Weiterspielen</button>`);
+        $('okWait').onclick=closeModal; } },1000);
+  }
+
+  /* ---------- coin offer ---------- */
+  /* ---------- coin offer (varied deals = more buy incentives) ---------- */
+  const COIN_DEALS=[
+    {sc:100,was:1.99,now:0.99,head:'Coins gehen aus?',sub:'Schnapp dir <b>100 Sternen-Coins</b>!'},
+    {sc:330,was:3.99,now:1.99,head:'🔥 Blitz-Angebot!',sub:'<b>330 Coins</b> – nur für kurze Zeit!'},
+    {sc:600,was:6.99,now:3.49,head:'⭐ Beliebtes Paket!',sub:'<b>600 Coins</b> +20% gratis dazu!'},
+    {sc:1400,was:12.99,now:6.99,head:'💎 Bester Wert!',sub:'<b>1400 Coins</b> – spar 46%!'}
+  ];
+  function coinOffer(){
+    const d=COIN_DEALS[Math.floor(Math.random()*COIN_DEALS.length)];
+    openModal(`<span class="big">🪙</span><h2>${d.head}</h2>
+      <p>${d.sub}</p>
+      <div style="margin-bottom:14px;"><span class="strike">${fmt(d.was)} €</span><span class="price">${fmt(d.now)} €</span></div>
+      <button class="buy-btn" id="buyCoins">✨ JETZT KAUFEN</button>
+      <button class="buy-btn green" id="moreCoins">🪙 Mehr Coin-Pakete</button>
+      <button class="decline" id="noCoins">Nein danke</button>`);
+    $('buyCoins').onclick=()=>{ fakePurchase(d.now,d.sc+' Coins'); state.coins+=d.sc; updateHUD(); toast('🪙 +'+d.sc+' Coins!'); closeModal(); };
+    $('moreCoins').onclick=()=>renderShop('coins');
+    $('noCoins').onclick=closeModal;
+  }
+
+  /* ---------- loot box ---------- */
+  function enableBox(){ const b=$('boxBtn'); b.disabled=false; $('boxBadge').style.display='flex'; if(!state.freeBoxUsed) toast('🎁 Gratis-Kiste bereit!'); }
+  $('boxBtn').onclick=()=>{ if(!$('boxBtn').disabled) openBox(); };
+  function openBox(){
+    const free=!state.freeBoxUsed;
+    openModal(`<span class="big">🎰</span><h2>Magische Kiste!</h2>
+      <p>${free?'Heute <b>GRATIS</b> für dich! 🎉':'Diese Kiste kostet <b>50 SC</b> oder 0,99 €'}</p>
+      <div id="wheelWrap"><div id="wheelPin">🔻</div><div id="wheel"></div></div>
+      <button class="buy-btn green" id="spinBtn">${free?'🎁 Gratis öffnen!':'🪙 Für 50 SC öffnen'}</button>
+      ${free?'':'<button class="buy-btn" id="payBox">💳 Stattdessen 0,99 € zahlen</button><button class="decline" id="noBox">Nein danke</button>'}`);
+    const finishSpin=()=>{ const wheel=$('wheel'); wheel.style.transform=`rotate(${(4+Math.random()*3)*360}deg)`;
+      const prizes=['🎩 Hut-Skin','🌈 Regenbogen-Spur','👑 Krone','⚡ Turbo-Stern','🎈 Ballon','🦊 Fuchs-Skin'];
+      const prize=prizes[Math.floor(Math.random()*prizes.length)]; $('spinBtn').disabled=true;
+      setTimeout(()=>{ state.freeBoxUsed=true; state.starsCaught=0; state.nextBox=10;
+        $('boxBtn').disabled=true; $('boxBadge').style.display='none';
+        openModal(`<span class="big">🎉</span><h2>Du hast gewonnen!</h2>
+          <p style="font-size:20px;color:var(--purple);"><b>${prize}</b></p><p>Sammle 10 Sterne für die nächste Kiste!</p>
+          <button class="buy-btn green" id="okBox">Cool! Weiter</button>`); $('okBox').onclick=closeModal; },3200); };
+    $('spinBtn').onclick=()=>{ if(!free){ if(state.coins<50){toast('Zu wenig Coins! 🪙');return;} state.coins-=50; updateHUD(); } finishSpin(); };
+    if(!free){ $('payBox').onclick=()=>{ fakePurchase(0.99,'Kiste'); finishSpin(); }; $('noBox').onclick=closeModal; }
+  }
+
+  /* ---------- specials ---------- */
+  const SPECIALS=[
+    {e:'🎁',name:'Premium-Geschenk',price:2.99,desc:'Schalte das geheime Geschenk frei: <b>doppelte Punkte</b> für 45 Sekunden!',btn:'🔓 Freischalten – 2,99 €',apply:()=>{ state.mult=2; multUntil=performance.now()+45000; toast('✨ Doppelte Punkte aktiv!'); setTimeout(()=>{if(performance.now()>=multUntil-10){state.mult=1;}},45000); }},
+    {e:'💎',name:'Diamant-Magnet',price:1.99,desc:'Zieht <b>30 Sekunden lang</b> alle Sterne automatisch zu dir!',btn:'🧲 Magnet kaufen – 1,99 €',apply:()=>activateMagnet(30000)},
+    {e:'👑',name:'VIP-Klub',price:4.99,desc:'Werde <b>VIP</b>! Nie wieder warten, goldene Rakete – nur 4,99 € <b>pro Woche</b>.',btn:'👑 VIP werden – 4,99 €/Woche',apply:()=>{ state.vip=true; state.skin='👑'; player.textContent='👑'; toast('👑 Du bist jetzt VIP – ein Abo, das jede Woche zahlt!'); }},
+  ];
+  function startSpecials(){ clearInterval(specialTimer); specialTimer=setInterval(spawnSpecial,19000); }
+  function spawnSpecial(){
+    if(!state.running||overlay.classList.contains('show')) return;
+    const d=SPECIALS[Math.floor(Math.random()*SPECIALS.length)];
+    const el=document.createElement('div'); el.className='star special'; el.textContent=d.e;
+    const w=field.clientWidth,h=field.clientHeight,x=20+Math.random()*(w-60);
+    el.style.left=x+'px'; el.style.top='-60px'; field.appendChild(el);
+    let t=0,last=performance.now(),done=false;
+    function frame(now){ if(!el.isConnected||done)return; const dt=now-last;last=now;
+      if(!gamePaused&&state.running)t+=dt; const p=t/5200;
+      if(p>=1){el.remove();return;} el.style.top=(p*(h+50)-60)+'px'; requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+    el.addEventListener('pointerdown',()=>{ if(done)return; done=true; el.remove(); openSpecial(d); });
+  }
+  function openSpecial(d){
+    openModal(`<span class="big">${d.e}</span><h2>${d.name} <span style="font-size:18px">🔒</span></h2>
+      <p>${d.desc}</p><button class="buy-btn" id="spBuy">${d.btn}</button>
+      <button class="decline" id="spNo">Nein danke</button>`);
+    $('spBuy').onclick=()=>{ fakePurchase(d.price,d.name); d.apply(); closeModal(); };
+    $('spNo').onclick=closeModal;
+  }
+  function activateMagnet(ms){ magnetUntil=performance.now()+ms; toast('🧲 Magnet aktiv!'); if(!magnetTimer) magnetTimer=setInterval(magnetStep,80); }
+  function magnetStep(){
+    if(!state.permMagnet && performance.now()>magnetUntil){ clearInterval(magnetTimer); magnetTimer=null; return; }
+    if(!state.running||gamePaused) return;
+    const stars=[...field.querySelectorAll('.star:not(.special)')]; if(!stars.length) return;
+    const fr=field.getBoundingClientRect(); let low=null,mx=-1;
+    stars.forEach(s=>{const r=s.getBoundingClientRect(); if(r.top>mx){mx=r.top;low=s;}});
+    if(low){ const r=low.getBoundingClientRect(); state.playerX=Math.max(.06,Math.min(.94,(r.left-fr.left+18)/field.clientWidth));
+      player.style.left=(state.playerX*100)+'%'; if(r.top-fr.top>field.clientHeight-130) low.dispatchEvent(new PointerEvent('pointerdown')); }
+  }
+
+  /* ---------- SHOP (functional, with tabs) ---------- */
+  const SKINS=[{e:'🚀',n:'Rakete',sc:0},{e:'🛸',n:'Ufo',sc:120},{e:'🧑‍🚀',n:'Astronaut',sc:250},
+    {e:'🚁',n:'Heli',sc:400},{e:'🐉',n:'Drache',sc:650},{e:'🦄',n:'Einhorn',sc:900},
+    {e:'👽',n:'Alien',sc:1400},{e:'🌈',n:'Regenbogen',eur:1.99}];
+  const THEMES=[{id:'space',n:'Weltall',sc:0,g:'linear-gradient(160deg,#1a1145,#3a1d7a,#6b2fa0)'},
+    {id:'sunset',n:'Sonnenuntergang',sc:200,g:'linear-gradient(160deg,#ff7e5f,#feb47b,#ff5fa2)'},
+    {id:'ocean',n:'Ozean',sc:300,g:'linear-gradient(160deg,#0b486b,#3aa0ff,#16a085)'},
+    {id:'neon',n:'Neon',eur:0.99,g:'linear-gradient(160deg,#2d0036,#ff007a,#7b00ff)'},
+    {id:'gold',n:'Gold VIP',eur:1.99,g:'linear-gradient(160deg,#3a2d00,#ffd23f,#ff8a00)'}];
+  const ADDONS=[{id:'shield',e:'🛡️',n:'Schutzschild',ds:'3 Sterne abfangen',sc:400,apply:()=>{state.shields+=3;}},
+    {id:'slow',e:'🐢',n:'Zeitlupe',ds:'60s langsamer',sc:300,apply:()=>{slowUntil=performance.now()+60000;}},
+    {id:'glitter',e:'✨',n:'Glitzer-Spur',ds:'funkelnde Rakete',sc:200,apply:()=>{state.glitter=true;player.classList.add('glitter');}},
+    {id:'double',e:'💫',n:'Doppel-Punkte',ds:'2 Min x2',eur:1.99,apply:()=>{state.mult=2;setTimeout(()=>{state.mult=1;},120000);}},
+    {id:'magnet',e:'🧲',n:'Dauer-Magnet',ds:'zieht IMMER an',eur:2.99,apply:()=>{state.permMagnet=true;activateMagnet(999999);}}];
+  const EXTRAS=[{id:'night',e:'🌙',n:'Nachtmodus',eur:0.49,apply:()=>applyTheme(null,'linear-gradient(160deg,#000010,#0a0a2a,#1a1145)')},
+    {id:'music',e:'🎵',n:'Musik',eur:0.99,apply:()=>startMusic()},
+    {id:'confetti',e:'🎉',n:'Konfetti',eur:0.49,apply:()=>{}},
+    {id:'giant',e:'⭐',n:'Riesen-Sterne',eur:0.99,apply:()=>field.classList.add('giant')},
+    {id:'frame',e:'🖼️',n:'Goldrahmen',eur:1.49,apply:()=>app.classList.add('framed')},
+    {id:'xlpop',e:'🔢',n:'XL-Punkte',eur:0.49,apply:()=>{}}];
+
+  function applyTheme(id,grad){ if(grad){document.body.style.background=grad;} else {const t=THEMES.find(x=>x.id===id); if(t){document.body.style.background=t.g; state.theme=id;}} }
+
+  /* coin packages – classic tiered IAP store (the lesson: bigger pack = "better deal" bait) */
+  const COIN_PACKS=[
+    {sc:100,eur:0.99,bonus:'',tag:''},
+    {sc:330,eur:1.99,bonus:'+10% gratis',tag:''},
+    {sc:600,eur:3.49,bonus:'+20% gratis',tag:'BELIEBT'},
+    {sc:1400,eur:6.99,bonus:'+40% gratis',tag:'BESTER WERT'},
+    {sc:3200,eur:14.99,bonus:'+60% gratis',tag:'MEGA'},
+    {sc:7000,eur:29.99,bonus:'+75% gratis',tag:'WAHNSINN'}];
+  let playerName='';
+  const LB_BOTS=[{n:'Lena_TBK',s:4521},{n:'MaxGamer',s:3890},{n:'Sophie⭐',s:2740},
+    {n:'Tom_99',s:1850},{n:'PixelFee',s:980},{n:'BlockBoss',s:430},{n:'Niki_07',s:120}];
+  function renderLeaderboard(){
+    const list=LB_BOTS.map(b=>({n:b.n,s:b.s,you:false}));
+    list.push({n:playerName||'Du',s:state.score,you:true});
+    list.sort((a,b)=>b.s-a.s);
+    const myIdx=list.findIndex(x=>x.you);
+    let rows;
+    if(myIdx<3){
+      // player is in the top 3 -> show top 3 normally with ranks (player highlighted in place)
+      rows=list.slice(0,3).map((x,i)=>({...x,rank:i+1}));
+    } else {
+      // show top 3 (ranked) + the player directly below WITHOUT a placement number
+      rows=list.slice(0,3).map((x,i)=>({...x,rank:i+1}));
+      rows.push({...list[myIdx],rank:null});
+    }
+    $('lbList').innerHTML=rows.map(r=>
+      `<div class="lb-row${r.you?' you':''}"><span>${r.rank?r.rank+'. ':''}${r.n}</span><span>${r.s}</span></div>`
+    ).join('');
+  }
+
+  function buySC(price,onOK){ if(state.coins>=price){ state.coins-=price; onOK(); updateHUD(); return true; } needCoins(price-state.coins); return false; }
+
+  /* ---------- need more coins -> cross-sell (dark pattern + fixes "nothing happened") ---------- */
+  function needCoins(missing){
+    openModal(`<span class="big">🪙</span><h2>Zu wenig Coins!</h2>
+      <p>Dir fehlen noch <b>${missing} Coins</b>. Kauf dir schnell welche – dann klappt's! 😉</p>
+      <button class="buy-btn" id="ncBuy">✨ 300 Coins – nur 1,99 €</button>
+      <button class="buy-btn green" id="ncShop">🪙 Alle Coin-Pakete ansehen</button>
+      <button class="decline" id="ncNo">Nein danke</button>`);
+    $('ncBuy').onclick=()=>{ fakePurchase(1.99,'300 Coins'); state.coins+=300; updateHUD(); renderShop('coins'); };
+    $('ncShop').onclick=()=>renderShop('coins');
+    $('ncNo').onclick=()=>renderShop(shopTab);
+  }
+
+  let shopTab='skins';
+  $('shopBtn').onclick=()=>renderShop('skins');
+  function renderShop(tab){
+    shopTab=tab;
+    let body='';
+    if(tab==='skins'){
+      body='<div class="grid">'+SKINS.map(s=>{
+        const owned=!!state.ownedSkins[s.e], eq=state.skin===s.e;
+        const price=s.eur?`<div class="pr eur">${fmt(s.eur)} €</div>`:`<div class="pr sc">🪙 ${s.sc} SC</div>`;
+        let btn= eq?`<button class="eq" disabled>Aktiv ✓</button>`
+              : owned?`<button class="use" data-eq="${s.e}">Anlegen</button>`
+              : `<button data-skin="${s.e}">Kaufen</button>`;
+        return `<div class="item ${owned?'owned':''} ${eq?'equipped':''}"><span class="em">${s.e}</span><div class="nm">${s.n}</div><div class="ds"></div>${owned?'<div class="pr sc">✓ gekauft</div>':price}${btn}</div>`;
+      }).join('')+'</div>';
+    } else if(tab==='colors'){
+      body='<div class="grid">'+THEMES.map(t=>{
+        const owned=!!state.ownedThemes[t.id], eq=state.theme===t.id;
+        const price=t.eur?`<div class="pr eur">${fmt(t.eur)} €</div>`:`<div class="pr sc">🪙 ${t.sc} SC</div>`;
+        let btn= eq?`<button class="eq" disabled>Aktiv ✓</button>`
+              : owned?`<button class="use" data-theme="${t.id}">Anlegen</button>`
+              : `<button data-buytheme="${t.id}">Kaufen</button>`;
+        return `<div class="item ${owned?'owned':''} ${eq?'equipped':''}"><div class="swatch" style="background:${t.g}"></div><div class="nm">${t.n}</div>${owned?'<div class="pr sc">✓ gekauft</div>':price}${btn}</div>`;
+      }).join('')+'</div>';
+    } else if(tab==='addons'){
+      body='<div class="grid">'+ADDONS.map(a=>{
+        const price=a.eur?`<div class="pr eur">${fmt(a.eur)} €</div>`:`<div class="pr sc">🪙 ${a.sc} SC</div>`;
+        return `<div class="item"><span class="em">${a.e}</span><div class="nm">${a.n}</div><div class="ds">${a.ds}</div>${price}<button data-addon="${a.id}">Kaufen</button></div>`;
+      }).join('')+'</div><p style="font-size:11px;margin-top:4px;">Zusätze machen das Spiel leichter – manche nur gegen echtes Geld.</p>';
+    } else if(tab==='extras'){
+      body='<div class="grid">'+EXTRAS.map(x=>{
+        const on=!!state.settings[x.id];
+        if(x.id==='music' && on){
+          return `<div class="item owned"><span class="em">${x.e}</span><div class="nm">${x.n}</div><div class="pr eur">gekauft</div><button class="use" data-musictoggle="1">${musicOn?'🔊 An':'🔇 Aus'}</button></div>`;
+        }
+        return `<div class="item ${on?'owned':''}"><span class="em">${x.e}</span><div class="nm">${x.n}</div><div class="pr eur">${fmt(x.eur)} €</div>${on?'<button class="eq" disabled>An ✓</button>':`<button data-extra="${x.id}">Kaufen</button>`}</div>`;
+      }).join('')+'</div><p style="font-size:11px;margin-top:4px;">Viele Einstellungen – aber jede kostet extra. 😉</p>';
+    } else if(tab==='coins'){
+      body='<div class="grid" style="gap:14px;margin-top:6px;">'+COIN_PACKS.map((c,i)=>{
+        return `<div class="coinpack">${c.tag?`<span class="tag">${c.tag}</span>`:''}
+          <div class="pile">${i<2?'🪙':i<4?'💰':'🤑'}</div>
+          <div class="amt">${c.sc}<small> SC</small></div>
+          <div class="bonus">${c.bonus||''}</div>
+          <div class="pr">${fmt(c.eur)} €</div>
+          <button data-coinpack="${i}">Kaufen</button></div>`;
+      }).join('')+'</div><p style="font-size:11px;margin-top:8px;">Je größer das Paket, desto „billiger" wirkt jeder Coin – ein Trick, damit du mehr <b>echtes Geld</b> ausgibst.</p>';
+    } else if(tab==='mode'){
+      const on=state.mode==='roblox';
+      body=`<div style="margin:10px 0">
+        <div style="font-size:54px;font-family:'Press Start 2P',monospace;letter-spacing:4px;">🟩🟦🟪</div>
+        <h2 style="margin:8px 0">🟦 Roblox-Modus (Pixel-Stil)</h2>
+        <p>Verwandle alles in eine Klötzchen-Welt im <b>Pixel-Look</b>! Spielfigur, Blöcke und Menüs werden eckig – wie bei Roblox. Sammle bunte Pixel-Blöcke statt Sterne.</p>
+        ${on?'<button class="buy-btn green" disabled>✅ Roblox-Modus ist aktiv</button>':'<button class="buy-btn" id="buyRoblox">🟦 Roblox-Modus freischalten – 4,99 €</button>'}
+        ${on?'<button class="decline" id="robloxOff">Zurück zum normalen Modus</button>':''}
+      </div>`;
+    }
+    openModal(`<h2 style="margin-bottom:10px">🛍️ Stern-Shop</h2>
+      <div class="tabs">
+        <button class="tab ${shopTab==='coins'?'active':''}" data-tab="coins">🪙 Coins</button>
+        <button class="tab ${shopTab==='skins'?'active':''}" data-tab="skins">🚀 Raketen</button>
+        <button class="tab ${shopTab==='colors'?'active':''}" data-tab="colors">🎨 Farben</button>
+        <button class="tab ${shopTab==='addons'?'active':''}" data-tab="addons">🧩 Zusätze</button>
+        <button class="tab ${shopTab==='extras'?'active':''}" data-tab="extras">⚙️ Extras</button>
+        <button class="tab ${shopTab==='mode'?'active':''}" data-tab="mode">🟦 Roblox</button>
+      </div>
+      <div style="font-size:13px;font-weight:900;color:#c98a00;margin-bottom:8px;">Dein Guthaben: 🪙 ${state.coins} SC</div>
+      ${body}
+      <button class="decline" id="closeShop">Schließen</button>`);
+
+    modal.querySelectorAll('.tab').forEach(b=>b.onclick=()=>renderShop(b.dataset.tab));
+    $('closeShop').onclick=closeModal;
+
+    // skins
+    modal.querySelectorAll('[data-skin]').forEach(b=>b.onclick=()=>{ const e=b.dataset.skin; const s=SKINS.find(x=>x.e===e);
+      if(s.eur){ fakePurchase(s.eur,'Rakete '+s.n); state.ownedSkins[e]=true; equipSkin(e); }
+      else buySC(s.sc,()=>{ state.ownedSkins[e]=true; record('Rakete '+s.n,s.sc+' SC'); equipSkin(e); }); });
+    modal.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>equipSkin(b.dataset.eq));
+    // themes
+    modal.querySelectorAll('[data-buytheme]').forEach(b=>b.onclick=()=>{ const id=b.dataset.buytheme; const t=THEMES.find(x=>x.id===id);
+      if(t.eur){ fakePurchase(t.eur,'Farbe '+t.n); state.ownedThemes[id]=true; applyTheme(id); renderShop('colors'); }
+      else buySC(t.sc,()=>{ state.ownedThemes[id]=true; record('Farbe '+t.n,t.sc+' SC'); applyTheme(id); renderShop('colors'); }); });
+    modal.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); renderShop('colors'); });
+    // addons  (FIX: always re-render so balance updates + clear feedback; no more "nothing happened")
+    modal.querySelectorAll('[data-addon]').forEach(b=>b.onclick=()=>{ const a=ADDONS.find(x=>x.id===b.dataset.addon);
+      if(a.eur){ fakePurchase(a.eur,a.n); a.apply(); toast('✅ '+a.n+' gekauft & aktiv!'); renderShop('addons'); }
+      else { buySC(a.sc,()=>{ a.apply(); record(a.n,a.sc+' SC'); toast('✅ '+a.n+' gekauft & aktiv!'); renderShop('addons'); }); } });
+    // coin packs
+    modal.querySelectorAll('[data-coinpack]').forEach(b=>b.onclick=()=>{ const c=COIN_PACKS[+b.dataset.coinpack];
+      fakePurchase(c.eur,c.sc+' Coins'); state.coins+=c.sc; updateHUD(); toast('🪙 +'+c.sc+' Coins!'); renderShop('coins'); });
+    // extras
+    modal.querySelectorAll('[data-extra]').forEach(b=>b.onclick=()=>{ const x=EXTRAS.find(e=>e.id===b.dataset.extra);
+      fakePurchase(x.eur,x.n); state.settings[x.id]=true; x.apply(); renderShop('extras'); });
+    const mt=modal.querySelector('[data-musictoggle]'); if(mt) mt.onclick=()=>{ if(musicOn) stopMusic(); else startMusic(); renderShop('extras'); };
+    // roblox pixel mode
+    if($('buyRoblox')) $('buyRoblox').onclick=()=>{ fakePurchase(4.99,'Roblox-Modus'); enterRoblox(); renderShop('mode'); };
+    if($('robloxOff')) $('robloxOff').onclick=()=>{ exitRoblox(); renderShop('mode'); };
+  }
+  function enterRoblox(){
+    state.mode='roblox'; app.classList.add('roblox');
+    applyTheme(null,'linear-gradient(180deg,#4aa3ff 0%,#7cc6ff 55%,#3a8f3a 55%,#2f7a2f 100%)');
+    toast('🟦 Roblox-Modus aktiv – alles im Pixel-Stil!');
+  }
+  function exitRoblox(){
+    state.mode='normal'; app.classList.remove('roblox');
+    player.textContent=state.skin; applyTheme(state.theme);
+  }
+  function equipSkin(e){ state.skin=e; player.textContent=e; if(shopTab) renderShop('skins'); }
+
+  /* ---------- confetti ---------- */
+  function confetti(x,y,n){
+    const cols=['#ff5fa2','#3aa0ff','#ffd23f','#2ecc71','#7b4dff','#ff3b5c'];
+    for(let i=0;i<n;i++){ const c=document.createElement('div'); c.className='confetti';
+      c.style.left=x+'px'; c.style.top=y+'px'; c.style.background=cols[i%cols.length];
+      field.appendChild(c); const ang=Math.random()*Math.PI*2, sp=40+Math.random()*70;
+      const dx=Math.cos(ang)*sp, dy=Math.sin(ang)*sp-40;
+      c.animate([{transform:'translate(0,0) rotate(0)',opacity:1},{transform:`translate(${dx}px,${dy+120}px) rotate(${Math.random()*720}deg)`,opacity:0}],
+        {duration:900+Math.random()*400,easing:'cubic-bezier(0.23,1,0.32,1)'}).onfinish=()=>c.remove(); }
+  }
+
+  /* ---------- daily reward ---------- */
+  function dailyReward(){
+    openModal(`<span class="big">🎁</span><h2>Tag 3 Belohnung!</h2>
+      <p>Willkommen zurück! Du bekommst heute <b>50 Bonus-Coins</b>. 🎉<br>Komm <b>morgen</b> wieder für <b>100 Coins</b>!</p>
+      <p style="font-size:13px;">⏳ Nächste Belohnung in <span class="mini-timer">06:13:40</span></p>
+      <button class="buy-btn green" id="claim">🎉 50 Coins abholen</button>`);
+    $('claim').onclick=()=>{ state.coins+=50; updateHUD(); overlay.classList.remove('show'); startGameLoop(); };
+  }
+
+  /* ---------- movement ---------- */
+  field.addEventListener('pointermove',e=>{ if(!state.running||gamePaused)return; const r=field.getBoundingClientRect();
+    state.playerX=Math.max(.06,Math.min(.94,(e.clientX-r.left)/r.width)); player.style.left=(state.playerX*100)+'%'; });
+  document.addEventListener('keydown',e=>{ if(!state.running||gamePaused)return;
+    if(e.key==='ArrowLeft') state.playerX=Math.max(.06,state.playerX-.06);
+    if(e.key==='ArrowRight') state.playerX=Math.min(.94,state.playerX+.06);
+    player.style.left=(state.playerX*100)+'%'; });
+
+  /* ---------- end game + statistics ---------- */
+  $('endBtn').onclick=()=>{
+    openModal(`<span class="big" style="animation:none">🏁</span><h2>Spiel beenden?</h2>
+      <p>Möchtest du aufhören und deine Statistik ansehen?</p>
+      <button class="buy-btn green" id="confEnd">🏁 Ja, beenden</button>
+      <button class="decline" id="keepPlay">Weiterspielen</button>`);
+    $('confEnd').onclick=endGame; $('keepPlay').onclick=closeModal;
+  };
+  function endGame(){
+    state.running=false; gamePaused=true;
+    clearInterval(spawnTimer); clearInterval(specialTimer); clearInterval(magnetTimer); magnetTimer=null;
+    field.innerHTML='';
+    const secsPlayed=Math.round((Date.now()-state.startTime)/1000);
+    const mm=String(Math.floor(secsPlayed/60)).padStart(2,'0'), ss=String(secsPlayed%60).padStart(2,'0');
+    const buys = state.purchases.length
+      ? `<div class="buylist">${state.purchases.map(p=>`<div class="bl-item"><span>${p.name}</span><span>${p.cost}</span></div>`).join('')}</div>`
+      : `<div class="buylist" style="text-align:center;color:var(--green);">Nichts gekauft – super gemacht! 👍</div>`;
+    openModal(`<span class="big" style="animation:none">📊</span><h2>Deine Statistik</h2>
+      <div class="stat-spent"><div class="lbl">💸 Mit echtem Geld „ausgegeben"</div><div class="amt">${fmt(state.spent)} €</div></div>
+      <div class="statrow"><span>⏱️ Spielzeit</span><span>${mm}:${ss} Min</span></div>
+      <div class="statrow"><span>🏆 Punkte</span><span>${state.score}</span></div>
+      <div class="statrow"><span>⭐ Sterne gefangen</span><span>${state.starsCaught}</span></div>
+      <div class="statrow"><span>🔥 Beste Combo</span><span>${state.comboBest}</span></div>
+      <div class="statrow"><span>📈 Level erreicht</span><span>${state.level}</span></div>
+      <div class="statrow"><span>🪙 Coins gesammelt</span><span>${state.coins}</span></div>
+      <div style="text-align:left;font-weight:900;color:var(--ink);margin:12px 0 4px;">🛍️ Gekaufte Dinge:</div>
+      ${buys}
+      <p style="background:#fff6e6;border-radius:12px;padding:10px;color:#a8690a;">So schnell werden aus kleinen Beträgen <b>viel echtes Geld</b> – und das Spiel hört nie von selbst auf.</p>
+      <button class="buy-btn green" id="again">🔁 Nochmal spielen</button>
+      <button class="decline" id="toQuiz" style="color:var(--pink);">🧠 Quiz: Erkenne die Tricks</button>
+      <button class="decline" id="toTeacher">🍎 Lehrermodus öffnen</button>`);
+    $('again').onclick=()=>{ try{ resetGame(); }catch(e){ location.reload(); } };
+    $('toQuiz').onclick=()=>{ overlay.classList.remove('show'); openQuiz(); };
+    $('toTeacher').onclick=()=>{ overlay.classList.remove('show'); $('teacher').classList.add('show'); };
+  }
+
+  /* ---------- start / restart ---------- */
+  function resetGame(){
+    stopMusic();
+    clearInterval(spawnTimer); clearInterval(specialTimer); clearInterval(magnetTimer); magnetTimer=null;
+    clearTimeout(comboTimer); slowUntil=0; multUntil=0; magnetUntil=0;
+    state = makeState();
+    document.body.style.background='var(--bg)';
+    field.innerHTML=''; field.classList.remove('giant'); app.classList.remove('framed'); app.classList.remove('roblox');
+    player.textContent='🚀'; player.classList.remove('glitter'); player.style.left='50%';
+    $('boxBtn').disabled=true; $('boxBadge').style.display='none';
+    $('xpFill').style.width='0%'; $('xpText').textContent='Level 1';
+    $('combo').classList.remove('show');
+    $('teacher').classList.remove('show'); overlay.classList.remove('show');
+    updateHUD(); $('spentVal').textContent='0,00';
+    startGameLoop();
+  }
+
+  function startGameLoop(){
+    state.running=true; gamePaused=false; state.startTime=Date.now();
+    startSpawning(); startSpecials();
+    const tb=$('teacherBtn'); tb.style.display='block'; requestAnimationFrame(()=>tb.classList.add('show'));
+    setTimeout(()=>{ tb.classList.remove('show'); setTimeout(()=>tb.style.display='none',420); },6000);
+    $('leaderboard').classList.add('show');
+  }
+  $('startBtn').onclick=()=>{
+    const v=($('nameInput').value||'').trim();
+    if(!v){ const inp=$('nameInput'); inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
+      $('nameHint').textContent='✏️ Bitte gib zuerst deinen Namen ein!'; $('nameHint').style.color='var(--yellow)'; inp.focus(); return; }
+    playerName=v;
+    $('start').style.display='none'; updateHUD(); dailyReward();
+  };
+  $('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('startBtn').click(); });
+
+  /* coin pill opens the coin shop (extra purchase incentive) */
+  $('coinPill').onclick=()=>{ if(state.running) renderShop('coins'); };
+
+  /* teacher */
+  function openTeacher(){ pauseGame(); $('teacher').classList.add('show'); }
+  $('teacherBtn').onclick=openTeacher;
+  $('closeTeacher').onclick=()=>{ $('teacher').classList.remove('show'); resumeGame(); };
+  $('countdownBanner').onclick=coinOffer;
+
+  /* quiz entry points */
+  $('openQuizFromTeacher').onclick=()=>{ $('teacher').classList.remove('show'); openQuiz(); };
+
+  /* ============================================================
+     QUIZ MODE  – Wissensfragen + „Erkenne den Anreiz" (anklicken)
+     ============================================================ */
+  const QUIZ_MC=[
+    {q:'Warum heißt das Geld im Spiel „Sternen-Coins" statt Euro?',
+     opts:['Damit man nicht merkt, dass man echtes Geld ausgibt','Weil Coins hübscher aussehen','Weil Euro im Weltall verboten sind'],correct:0,
+     why:'Genau! Eine eigene Währung versteckt, dass echtes Geld fließt.'},
+    {q:'Was ist an einer „Glücks-Kiste" gefährlich?',
+     opts:['Sie ist immer leer','Man weiß vorher nicht, was drin ist – wie beim Glücksspiel','Sie macht den Computer kaputt'],correct:1,
+     why:'Richtig! Das Überraschungs-Prinzip funktioniert wie Glücksspiel.'},
+    {q:'Warum blinkt der rote Countdown („endet in 23:47:12")?',
+     opts:['Damit du die Uhrzeit weißt','Damit du Angst hast, etwas zu verpassen, und schnell kaufst','Damit das Spiel bunter ist'],correct:1,
+     why:'Stimmt! Das nennt man Zeitdruck oder FOMO.'},
+    {q:'Wozu dient die Bestenliste rechts?',
+     opts:['Sie zeigt das Wetter','Sie macht sozialen Druck, damit du weiterspielst','Sie ist nur Deko'],correct:1,
+     why:'Korrekt! „Fast auf Platz X" treibt zum Weitermachen an.'},
+    {q:'Warum hört das Spiel nie von selbst auf?',
+     opts:['Damit du immer „noch eins" spielst','Weil der Aus-Knopf vergessen wurde','Weil Sterne nie alle werden'],correct:0,
+     why:'Genau! Level, Combos und XP halten dich in der Endlos-Schleife.'},
+    {q:'Was bedeutet ein VIP-Abo für 4,99 € pro Woche?',
+     opts:['Du zahlst einmal','Du zahlst jede Woche wieder – oft ohne es zu merken','Es ist gratis'],correct:1,
+     why:'Richtig! Abos kosten immer wieder Geld.'}
+  ];
+  const FIND_TASKS=[
+    {ask:'⏰ Klicke auf den Trick, der dir <b>Angst macht, etwas zu verpassen</b> (Zeitdruck).',target:'fomo'},
+    {ask:'🪙 Klicke auf die <b>versteckte Währung</b>, mit der man echtes Geld vergisst.',target:'currency'},
+    {ask:'🏅 Klicke auf den <b>sozialen Druck</b>, der zum Weiterspielen antreibt.',target:'social'},
+    {ask:'🎰 Klicke auf das <b>Glücksspiel-Element</b> mit Überraschung.',target:'gamble'},
+    {ask:'❤️ Klicke auf das, was dich <b>warten oder zahlen</b> lässt.',target:'energy'},
+    {ask:'💸 Klicke auf den <b>echten Geld-Betrag</b>, den die meisten Spiele verstecken.',target:'spend'}
+  ];
+
+  const quizEl=$('quiz');
+  let qPhase=0, qIndex=0, qScore=0, qTotal=QUIZ_MC.length+FIND_TASKS.length;
+
+  function openQuiz(){ pauseGame(); qPhase=1; qIndex=0; qScore=0; quizEl.classList.add('show'); renderMC(); }
+  function closeQuiz(){ quizEl.classList.remove('show'); quizEl.innerHTML=''; resumeGame(); }
+
+  function qDots(){ let d=''; for(let i=0;i<qTotal;i++){ const cls=i<qScoreIndex()?'done':i===qScoreIndex()?'cur':''; d+=`<span class="qdot ${cls}"></span>`; } return `<div class="qprogress">${d}</div>`; }
+  function qScoreIndex(){ return qPhase===1?qIndex:QUIZ_MC.length+qIndex; }
+
+  function renderMC(){
+    const item=QUIZ_MC[qIndex];
+    quizEl.innerHTML=`<h1>🧠 Trick-Quiz</h1><div class="qlead">Teil 1: Fragen zum Spiel</div>${qDots()}
+      <div class="qcard">
+        <span class="qnum">Frage ${qIndex+1} / ${QUIZ_MC.length}</span>
+        <h2>${item.q}</h2>
+        <div id="qopts">${item.opts.map((o,i)=>`<button class="qopt" data-i="${i}">${o}</button>`).join('')}</div>
+        <div class="qfeedback" id="qfb"></div>
+        <button class="qnext" id="qnext" style="display:none">Weiter ▶</button>
+      </div>
+      <button class="qclose" id="qclose">✖ Quiz beenden</button>`;
+    quizEl.scrollTop=0;
+    let answered=false;
+    quizEl.querySelectorAll('.qopt').forEach(b=>b.onclick=()=>{
+      if(answered) return; answered=true;
+      const i=+b.dataset.i; const fb=$('qfb');
+      quizEl.querySelectorAll('.qopt').forEach(x=>x.disabled=true);
+      if(i===item.correct){ b.classList.add('correct'); qScore++; fb.className='qfeedback ok'; fb.innerHTML='✅ '+item.why; }
+      else { b.classList.add('wrong'); quizEl.querySelectorAll('.qopt')[item.correct].classList.add('correct');
+        fb.className='qfeedback no'; fb.innerHTML='❌ Nicht ganz. '+item.why; }
+      $('qnext').style.display='inline-block';
+      $('qnext').scrollIntoView({block:'nearest'});
+    });
+    $('qnext').onclick=()=>{ qIndex++; if(qIndex<QUIZ_MC.length) renderMC(); else { qPhase=2; qIndex=0; renderFind(); } };
+    $('qclose').onclick=closeQuiz;
+  }
+
+  function renderFind(){
+    const task=FIND_TASKS[qIndex];
+    quizEl.innerHTML=`<h1>🔍 Finde den Anreiz</h1><div class="qlead">Teil 2: Klicke das richtige Element im Spiel</div>${qDots()}
+      <div class="qcard">
+        <span class="qnum">Aufgabe ${qIndex+1} / ${FIND_TASKS.length}</span>
+        <h2 style="font-size:16px">${task.ask}</h2>
+        ${replicaHTML()}
+        <div class="qfeedback" id="qfb"></div>
+        <button class="qnext" id="qnext" style="display:none">Weiter ▶</button>
+      </div>
+      <button class="qclose" id="qclose">✖ Quiz beenden</button>`;
+    quizEl.scrollTop=0;
+    let done=false;
+    const LABELS={fomo:'der blinkende Countdown (Zeitdruck/FOMO)',currency:'die Coin-Anzeige (versteckte Währung)',
+      social:'die Bestenliste (sozialer Druck)',gamble:'die Glücks-Kiste (Glücksspiel)',
+      energy:'die Herzen (warten oder zahlen)',spend:'der Geld-Zähler (echtes Geld)'};
+    function revealTarget(){ quizEl.querySelectorAll('.hot').forEach(x=>{ if(x.dataset.hot===task.target) x.classList.add('flash-ok'); x.style.pointerEvents='none'; }); }
+    quizEl.querySelectorAll('.hot').forEach(h=>h.onclick=()=>{
+      if(done) return; done=true;
+      const fb=$('qfb');
+      if(h.dataset.hot===task.target){ qScore++;
+        fb.className='qfeedback ok'; fb.innerHTML='✅ Richtig! Das ist '+LABELS[task.target]+'.';
+        revealTarget();
+      } else {
+        h.classList.add('flash-no'); setTimeout(()=>h.classList.remove('flash-no'),500);
+        fb.className='qfeedback no'; fb.innerHTML='❌ Nicht ganz – richtig wäre '+LABELS[task.target]+'.';
+        revealTarget();
+      }
+      $('qnext').style.display='inline-block';
+      $('qnext').scrollIntoView({block:'nearest'});
+    });
+    $('qnext').onclick=()=>{ qIndex++; if(qIndex<FIND_TASKS.length) renderFind(); else renderResult(); };
+    $('qclose').onclick=closeQuiz;
+  }
+
+  function replicaHTML(){
+    return `<div class="replica">
+      <div class="rep-row">
+        <div class="hot rep-pill" data-hot="currency">🪙 240</div>
+        <div class="hot rep-spend" data-hot="spend">💸 8,40 €</div>
+        <div class="hot rep-pill" data-hot="energy">❤️❤️🖤</div>
+      </div>
+      <div class="hot rep-banner" data-hot="fomo">⏰ ANGEBOT endet in 00:14:55!</div>
+      <div class="rep-mid">
+        <div class="rep-stage">
+          <div style="position:absolute;left:12px;top:14px;font-size:26px;">⭐</div>
+          <div style="position:absolute;left:64px;top:44px;font-size:22px;">💜</div>
+          <div style="position:absolute;left:34px;top:64px;font-size:22px;">💙</div>
+          <div style="position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:30px;">🚀</div>
+        </div>
+        <div class="hot rep-lb" data-hot="social">🏅 Beste<br><b>1. Lena 4521</b><br>2. Max 3890<br>3. Du 2710</div>
+      </div>
+      <div class="rep-row">
+        <button class="hot rep-btn" data-hot="currency" style="background:linear-gradient(135deg,#3aa0ff,#7b4dff);">🛍️ Shop</button>
+        <button class="hot rep-btn" data-hot="gamble" style="background:linear-gradient(135deg,#2ecc71,#16a085);">🎁 Kiste</button>
+      </div>
+    </div>`;
+  }
+
+  function renderResult(){
+    const pct=Math.round(qScore/qTotal*100);
+    const badge=pct>=80?'🏆':pct>=50?'🥈':'🌱';
+    const msg=pct>=80?'Super! Du erkennst die Tricks richtig gut – die fängt dich so schnell keiner!'
+            :pct>=50?'Gut gemacht! Du hast viele Tricks erkannt. Schau dir den Lehrermodus für die restlichen an.'
+            :'Kein Problem – Tricks zu erkennen muss man üben. Lies den Lehrermodus und probier es nochmal!';
+    quizEl.innerHTML=`<h1>🎉 Geschafft${playerName?', '+playerName:''}!</h1>
+      <div class="qcard">
+        <div class="qbadge">${badge}</div>
+        <div class="qscore">${qScore} / ${qTotal}</div>
+        <div style="font-weight:900;color:var(--purple);margin:4px 0 12px;">${pct}% richtig</div>
+        <p style="color:#5a5470;font-weight:700;">${msg}</p>
+        <button class="qnext" id="qCert" style="background:linear-gradient(135deg,#ffd23f,#ff8a00);">🏆 Zertifikat ansehen</button>
+        <button class="qclose" id="qAgain" style="background:var(--green);color:#fff;margin-top:10px;">🔁 Nochmal</button>
+        <button class="qclose" id="qToTeacher" style="background:var(--purple);color:#fff;margin-top:10px;">🍎 Lehrermodus ansehen</button>
+        <button class="qclose" id="qclose">✖ Quiz schließen</button>
+      </div>`;
+    $('qCert').onclick=renderCertificate;
+    quizEl.scrollTop=0;
+    $('qAgain').onclick=()=>{ qPhase=1; qIndex=0; qScore=0; renderMC(); };
+    $('qToTeacher').onclick=()=>{ quizEl.classList.remove('show'); quizEl.innerHTML=''; $('teacher').classList.add('show'); };
+    $('qclose').onclick=closeQuiz;
+  }
+
+  function renderCertificate(){
+    const pct=Math.round(qScore/qTotal*100);
+    const stars='★'.repeat(pct>=80?3:pct>=50?2:1)+'☆'.repeat(pct>=80?0:pct>=50?1:2);
+    const rank=pct>=80?'Meister-Detektiv':pct>=50?'Spür-Profi':'Detektiv-Lehrling';
+    const today=new Date().toLocaleDateString('de-AT',{day:'2-digit',month:'long',year:'numeric'});
+    quizEl.innerHTML=`<div id="certPrint">
+      <div class="cert">
+        <div class="seal">🛡️🏆</div>
+        <div class="sub">Urkunde · Medien-Detektiv</div>
+        <h2>Trick-Detektiv-Diplom</h2>
+        <div class="body-txt">Diese Urkunde bestätigt, dass</div>
+        <div class="who">${(playerName||'Spieler/in').replace(/</g,'&lt;')}</div>
+        <div class="body-txt">das Trick-Quiz gemeistert hat und jetzt die versteckten Maschen von Spielen erkennt:
+          Zeitdruck, virtuelle Währung, Glücks-Kisten, sozialen Druck und mehr.</div>
+        <div class="cert-score">Ergebnis: ${qScore} / ${qTotal} &nbsp;(${pct}%)</div>
+        <div class="stars">${stars}</div>
+        <div class="cert-foot">
+          <div class="sign">${today}<br><span style="font-weight:600;color:#a8690a;">Datum</span></div>
+          <div class="sign">🍎 Star Collector<br><span style="font-weight:600;color:#a8690a;">Rang: ${rank}</span></div>
+        </div>
+      </div>
+      <div class="cert-actions" style="text-align:center;margin-top:14px;">
+        <button class="qnext" id="certPrintBtn" style="background:linear-gradient(135deg,#3aa0ff,#7b4dff);box-shadow:0 5px 0 #5536c0;">🖨️ Zertifikat drucken</button>
+        <button class="qclose" id="certBack" style="margin-top:10px;">⬅️ Zurück</button>
+        <button class="qclose" id="qclose">✖ Quiz schließen</button>
+      </div>
+    </div>`;
+    $('certPrintBtn').onclick=()=>{ try{ window.print(); }catch(e){ toast('Drucken wird vom Browser blockiert'); } };
+    quizEl.scrollTop=0;
+    $('certBack').onclick=renderResult;
+    $('qclose').onclick=closeQuiz;
+  }
+
+  /* bg stars */
+  renderLeaderboard();
+  (function(){ for(let i=0;i<40;i++){ const s=document.createElement('div'); s.className='bgstar';
+    s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*100+'%'; s.style.animationDelay=Math.random()*3+'s'; app.appendChild(s); } })();
+})();
+</script>
+</body>
+</html>
